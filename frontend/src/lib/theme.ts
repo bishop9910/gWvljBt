@@ -197,11 +197,12 @@ export function applyTheme(cfg: ConfigData): void {
   const dark = preset.dark;
   const accent = accentOf(cfg);
   const radius = clamp(cfg.radius, 0, 24, 6);
+  const compact = cfg.density === "compact";
 
   root.dataset.preset = preset.key;
   root.dataset.scheme = dark ? "dark" : "light";
   root.dataset.motion = cfg.motion ? "on" : "off";
-  root.dataset.density = cfg.density === "compact" ? "compact" : "cozy";
+  root.dataset.density = compact ? "compact" : "cozy";
   root.style.colorScheme = dark ? "dark" : "light";
 
   const vars: Record<string, string> = {
@@ -230,7 +231,11 @@ export function applyTheme(cfg: ConfigData): void {
 
     "--gv-radius": `${radius}px`,
     "--gv-radius-sm": `${Math.max(2, Math.round(radius * 0.55))}px`,
-    "--gv-card-min": cfg.density === "compact" ? "176px" : "202px",
+    // 密度靠"卡片最小宽度 + 卡间距"一起决定每行放几张，只改宽度在宽屏上
+    // 经常还是同样的列数，看起来就像没生效。
+    "--gv-card-min": compact ? "164px" : "206px",
+    "--gv-grid-row-gap": compact ? "14px" : "28px",
+    "--gv-grid-col-gap": compact ? "12px" : "20px",
     "--gv-poster-ratio": (cfg.posterAspect || "2/3").split("/").join(" / "),
   };
   for (const [key, value] of Object.entries(vars)) root.style.setProperty(key, value);

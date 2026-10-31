@@ -8,6 +8,9 @@ interface UiState {
   patchEditorId: number;
   patchEditorGameId: number;
   scanOpen: boolean;
+  touchgalOpen: boolean;
+  touchgalGameId: number;
+  touchgalTitle: string;
   railCollapsed: boolean;
 }
 
@@ -18,6 +21,9 @@ export const uiStore = reactive<UiState>({
   patchEditorId: 0,
   patchEditorGameId: 0,
   scanOpen: false,
+  touchgalOpen: false,
+  touchgalGameId: 0,
+  touchgalTitle: "",
   railCollapsed: false,
 });
 
@@ -49,4 +55,15 @@ export function openScan(): void {
 
 export function closeScan(): void {
   uiStore.scanOpen = false;
+}
+
+/** 打开 TouchGal 找资源弹窗，顺手把作品标题带过去当搜索词。 */
+export function openTouchgal(options: { gameId?: number; title?: string } = {}): void {
+  uiStore.touchgalGameId = options.gameId ?? 0;
+  uiStore.touchgalTitle = options.title ?? "";
+  uiStore.touchgalOpen = true;
+}
+
+export function closeTouchgal(): void {
+  uiStore.touchgalOpen = false;
 }

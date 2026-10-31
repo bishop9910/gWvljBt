@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from "vue";
 import { RouterView, useRoute, useRouter } from "vue-router";
 import { NButton, NIcon, NInput, NTooltip } from "naive-ui";
 import type { Component } from "vue";
@@ -9,16 +9,19 @@ import {
   BarChartOutline,
   ChevronBackOutline,
   ChevronForwardOutline,
+  CompassOutline,
   ExtensionPuzzleOutline,
   ScanOutline,
   SearchOutline,
   SettingsOutline,
 } from "@vicons/ionicons5";
-import GameEditor from "./components/GameEditor.vue";
-import PatchEditor from "./components/PatchEditor.vue";
-import ScanDialog from "./components/ScanDialog.vue";
+// 三个抽屉/弹窗只在真正打开时才需要，做成异步组件，主 chunk 里就不带它们了。
+const GameEditor = defineAsyncComponent(() => import("./components/GameEditor.vue"));
+const PatchEditor = defineAsyncComponent(() => import("./components/PatchEditor.vue"));
+const ScanDialog = defineAsyncComponent(() => import("./components/ScanDialog.vue"));
+const TouchgalDialog = defineAsyncComponent(() => import("./components/TouchgalDialog.vue"));
 import { libraryStore, loadGames } from "./state/library";
-import { openGameEditor, openScan, uiStore } from "./state/ui";
+import { openGameEditor, openScan, openTouchgal, uiStore } from "./state/ui";
 
 const route = useRoute();
 const router = useRouter();
@@ -179,6 +182,13 @@ onUnmounted(() => {
           扫描
         </n-button>
 
+        <n-button class="scanbtn" quaternary @click="openTouchgal()">
+          <template #icon>
+            <n-icon :component="CompassOutline" />
+          </template>
+          找资源
+        </n-button>
+
         <n-button class="addbtn" type="primary" @click="openGameEditor()">
           <template #icon>
             <n-icon :component="AddOutline" />
@@ -199,6 +209,7 @@ onUnmounted(() => {
     <GameEditor />
     <PatchEditor />
     <ScanDialog />
+    <TouchgalDialog />
   </div>
 </template>
 

@@ -27,6 +27,7 @@ import {
   LinkOutline,
   PlayOutline,
   SaveOutline,
+  SearchOutline,
   StarOutline,
   TimeOutline,
   TrashOutline,
@@ -43,7 +44,7 @@ import {
   type Patch,
 } from "../lib/types";
 import { configStore } from "../state/config";
-import { openGameEditor, openPatchEditor } from "../state/ui";
+import { openGameEditor, openPatchEditor, openTouchgal } from "../state/ui";
 
 const route = useRoute();
 const router = useRouter();
@@ -342,6 +343,12 @@ watch(
                     <n-icon :component="CloudDownloadOutline" />
                   </template>
                   去 2DFan 下载
+                </n-button>
+                <n-button size="small" quaternary @click="openTouchgal({ gameId: game.id, title: game.title })">
+                  <template #icon>
+                    <n-icon :component="SearchOutline" />
+                  </template>
+                  找资源
                 </n-button>
               </div>
 

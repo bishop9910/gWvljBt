@@ -74,4 +74,19 @@ export interface ConfigData {
      * TwoDFanURL 是"去下补丁"的跳转地址，用户可以改成自己的镜像站。
      */
     "twoDFanUrl": string;
+
+    /**
+     * TouchgalURL 是 TouchGal 站点根地址，换镜像站时改这里。
+     */
+    "touchgalUrl": string;
+
+    /**
+     * TouchgalCookie 是整段 Cookie（至少要有 cf_clearance），用来过 Cloudflare。
+     */
+    "touchgalCookie": string;
+
+    /**
+     * TouchgalToken 是登录令牌（kun-galgame-patch-moe-token），不登录留空即可。
+     */
+    "touchgalToken": string;
 }

@@ -76,6 +76,7 @@ func main() {
 			application.NewService(NewPatchService(store)),
 			application.NewService(metaService),
 			application.NewService(NewScanService(gameService, metaService)),
+			application.NewService(NewTouchGalService(cfg)),
 		},
 		Assets: application.AssetOptions{
 			Handler:    application.AssetFileServerFS(assets),

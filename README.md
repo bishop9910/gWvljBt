@@ -35,6 +35,11 @@
 ### 统计
 收录总数、已通关、收藏、总时长、平均分，外加发行年份柱状图、状态分布、TOP 会社、补丁类型环形图、高频标签、库健康度（缺封面 / 目录不存在）和最近更新。
 
+### 找资源（TouchGal）
+顶栏的「找资源」（任何时候都能开，光标直接落在搜索框）和作品详情页补丁区的「找资源」（带作品名预填并自动搜一次）都会打开 TouchGal 检索面板：按标题搜作品 → 点开资源 → 列出网盘链接、提取码和大小，链接可以一键打开或复制。**文件不经过本工具，也不下载、不代理**，只是把站点的信息摆出来。
+
+站点整个在 Cloudflare 后面，普通 HTTP 客户端只会拿到人机验证页，所以要在「设置 → 元数据 → TouchGal」里粘一次浏览器 cookie（核心是 `cf_clearance`，登录令牌可选）。这个值通常几十分钟到几天就失效，过期时「测试连接」和检索面板都会直接说明原因，而不是静默返回空列表。
+
 ### 外观
 - 6 套完整纸墨样式（墨 / 夜 / 弁柄 / 和纸 / 樱 / 抹茶），每套自带明暗与整套配色，切换即换整本的感觉。
 - 在预设之上还能改：强调色（8 个颜色或自己取色，也可以「跟随样式」）、壁纸（选本地图片，可调模糊与压色浓度，不设壁纸时用纸面颗粒底）、圆角、界面密度、海报比例、动效开关。
@@ -83,6 +88,8 @@ wails3 build
 wails3 generate bindings -clean=true -ts -i
 ```
 
+前端的五个视图和三个弹窗都是动态 import（路由里 `component: () => import(...)`，`MainWindow.vue` 里用 `defineAsyncComponent`），每个页面单独一个 chunk，所以主包只有约 225 kB；别图省事改回静态 import，那样会把 naive-ui 的组件全塞进首屏。
+
 ### 目录结构
 
 ```
@@ -94,9 +101,10 @@ gameService.go       游戏 CRUD、筛选、启动、统计
 patchService.go      补丁 CRUD、快照对比、卸载
 metaService.go       VNDB / Bangumi 元数据
 scanService.go       游戏扫描器（选目录、扫描、批量入库）
+touchgalService.go   TouchGal 检索（带 cookie 过 Cloudflare）
 frontend/src/
   views/             游戏库、详情、补丁、统计、设置
-  components/        卡片、编辑器、海报、扫描器
+  components/        卡片、编辑器、海报、扫描器、找资源弹窗
   lib/               api 封装、主题、格式化、类型
   state/             配置 / 游戏库 / UI 的响应式状态
   styles/base.css    设计系统变量与通用类

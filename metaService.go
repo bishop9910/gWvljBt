@@ -43,19 +43,19 @@ func NewMetaService(cfg *config.Config) *MetaService {
 
 // SearchHit 是搜索结果里的一条，字段做了跨源归一化。
 type SearchHit struct {
-	Source        string  `json:"source"`
-	ID            string  `json:"id"`
-	Title         string  `json:"title"`
-	TitleCN       string  `json:"titleCn"`
-	OriginalTitle string  `json:"originalTitle"`
-	Poster        string  `json:"poster"`
-	Released      string  `json:"released"`
-	Developer     string  `json:"developer"`
-	Score         float64 `json:"score"`
-	RatingCount   int     `json:"ratingCount"`
-	Description   string  `json:"description"`
+	Source        string   `json:"source"`
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	TitleCN       string   `json:"titleCn"`
+	OriginalTitle string   `json:"originalTitle"`
+	Poster        string   `json:"poster"`
+	Released      string   `json:"released"`
+	Developer     string   `json:"developer"`
+	Score         float64  `json:"score"`
+	RatingCount   int      `json:"ratingCount"`
+	Description   string   `json:"description"`
 	Tags          []string `json:"tags"`
-	NSFW          bool    `json:"nsfw"`
+	NSFW          bool     `json:"nsfw"`
 }
 
 // MetaDraft 是准备写进数据库的一整套元数据。
@@ -462,16 +462,16 @@ type bgmInfoboxItem struct {
 }
 
 type bgmSubject struct {
-	ID      int             `json:"id"`
-	Name    string          `json:"name"`
-	NameCN  string          `json:"name_cn"`
-	Summary string          `json:"summary"`
-	Date    string          `json:"date"`
-	Images  bgmImages       `json:"images"`
-	Rating  bgmRating       `json:"rating"`
-	Tags    []bgmTag        `json:"tags"`
+	ID      int              `json:"id"`
+	Name    string           `json:"name"`
+	NameCN  string           `json:"name_cn"`
+	Summary string           `json:"summary"`
+	Date    string           `json:"date"`
+	Images  bgmImages        `json:"images"`
+	Rating  bgmRating        `json:"rating"`
+	Tags    []bgmTag         `json:"tags"`
 	Infobox []bgmInfoboxItem `json:"infobox"`
-	NSFW    bool            `json:"nsfw"`
+	NSFW    bool             `json:"nsfw"`
 }
 
 type bgmSearchResponse struct {

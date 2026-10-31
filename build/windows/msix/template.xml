@@ -10,11 +10,11 @@
     <Installer
         Path="gwvljbt.exe"
         Arguments=""
-        InstallLocation="C:\Program Files\Sanasu\My Product">
+        InstallLocation="C:\Program Files\Sanasu\gwvljbt">
     </Installer>
     <PackageInformation
-        PackageName="My Product"
-        PackageDisplayName="My Product"
+        PackageName="gwvljbt"
+        PackageDisplayName="gwvljbt"
         PublisherName="CN=Sanasu"
         PublisherDisplayName="Sanasu"
         Version="0.1.0.0"
@@ -26,8 +26,8 @@
         <Applications>
             <Application
                 Id="com.bishop9910.gwvljbt"
-                Description="A gWvljBt application"
-                DisplayName="My Product"
+                Description="gWvljBt"
+                DisplayName="gwvljbt"
                 ExecutableName="gwvljbt.exe"
                 EntryPoint="Windows.FullTrustApplication">
                 

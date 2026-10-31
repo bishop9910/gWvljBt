@@ -5,10 +5,10 @@
  * 生成的 bindings 换生成路径时也只改这一个文件。
  */
 import { Events } from "@wailsio/runtime";
-import { ConfigService, GameService, MetaService, PatchService, ScanService } from "../../bindings/gWvljBt";
+import { ConfigService, GameService, MetaService, PatchService, ScanService, TouchGalService } from "../../bindings/gWvljBt";
+import type { ScanImportInput, ScanImportResult, TouchGalHit, TouchGalResource } from "../../bindings/gWvljBt/models";
 import type { ConfigData } from "../../bindings/gWvljBt/config/models";
 import type { ScanMeta, ScanResult } from "../../bindings/gWvljBt/data/models";
-import type { ScanImportInput, ScanImportResult } from "../../bindings/gWvljBt/models";
 import type {
   DetectResult,
   DirEntry,
@@ -104,6 +104,14 @@ export const api = {
     scan: (root: string, maxDepth: number) => call<ScanResult>(ScanService.Scan(root, maxDepth)),
     lookup: (name: string, source: string) => call<ScanMeta>(ScanService.Lookup(name, source)),
     import: (items: ScanImportInput[]) => call<ScanImportResult>(ScanService.Import(items)),
+  },
+
+  // TouchGal 的接口全在 Cloudflare 后面，能不能用取决于设置里那段 Cookie。
+  touchgal: {
+    ping: () => call<string>(TouchGalService.Ping()),
+    search: (query: string, limit: number) =>
+      call<TouchGalHit[] | null>(TouchGalService.Search(query, limit)),
+    resources: (patchId: number) => call<TouchGalResource[] | null>(TouchGalService.Resources(patchId)),
   },
 };
 

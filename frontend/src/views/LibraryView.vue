@@ -376,7 +376,8 @@ const filtering = computed(() => activeFilterCount.value > 0 || !!libraryStore.f
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--gv-card-min), 1fr));
-  gap: 26px 20px;
+  row-gap: var(--gv-grid-row-gap, 26px);
+  column-gap: var(--gv-grid-col-gap, 20px);
   padding-bottom: 8px;
 }
 

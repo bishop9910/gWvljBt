@@ -43,6 +43,12 @@ type ConfigData struct {
 	BangumiToken string `json:"bangumiToken"`
 	// TwoDFanURL 是"去下补丁"的跳转地址，用户可以改成自己的镜像站。
 	TwoDFanURL string `json:"twoDFanUrl"`
+	// TouchgalURL 是 TouchGal 站点根地址，换镜像站时改这里。
+	TouchgalURL string `json:"touchgalUrl"`
+	// TouchgalCookie 是整段 Cookie（至少要有 cf_clearance），用来过 Cloudflare。
+	TouchgalCookie string `json:"touchgalCookie"`
+	// TouchgalToken 是登录令牌（kun-galgame-patch-moe-token），不登录留空即可。
+	TouchgalToken string `json:"touchgalToken"`
 }
 
 // Presets 是出厂提供的整套外观。前端 src/lib/theme.ts 里有一份同构的定义，
@@ -53,20 +59,23 @@ var presets = []string{"sumi", "yoru", "bengara", "washi", "sakura", "matcha"}
 // 拿到的是零值。
 func DefaultConfig() ConfigData {
 	return ConfigData{
-		Preset:        "sumi",
-		Accent:        "",
-		Wallpaper:     "",
-		WallpaperBlur: 8,
-		WallpaperVeil: 72,
-		Radius:        6,
-		Motion:        true,
-		Density:       "cozy",
-		PosterAspect:  "2/3",
-		SortMode:      "updated",
-		DefaultSource: "vndb",
-		VNDBToken:     "",
-		BangumiToken:  "",
-		TwoDFanURL:    "https://www.2dfan.com/",
+		Preset:         "sumi",
+		Accent:         "",
+		Wallpaper:      "",
+		WallpaperBlur:  8,
+		WallpaperVeil:  72,
+		Radius:         6,
+		Motion:         true,
+		Density:        "cozy",
+		PosterAspect:   "2/3",
+		SortMode:       "updated",
+		DefaultSource:  "vndb",
+		VNDBToken:      "",
+		BangumiToken:   "",
+		TwoDFanURL:     "https://www.2dfan.com/",
+		TouchgalURL:    "https://www.touchgal.ink/",
+		TouchgalCookie: "",
+		TouchgalToken:  "",
 	}
 }
 
@@ -262,7 +271,26 @@ func sanitize(d ConfigData) ConfigData {
 	if strings.TrimSpace(d.TwoDFanURL) == "" {
 		d.TwoDFanURL = "https://www.2dfan.com/"
 	}
+	d.TouchgalURL = normalizeBaseURL(d.TouchgalURL, "https://www.touchgal.ink/")
+	d.TouchgalCookie = strings.TrimSpace(d.TouchgalCookie)
+	d.TouchgalToken = strings.TrimSpace(d.TouchgalToken)
 	return d
+}
+
+// normalizeBaseURL 只补协议和结尾的斜杠，不做 URL 校验 —— 用户可能填的是
+// 自建镜像站，多拦一道只会让人摸不着头脑。
+func normalizeBaseURL(value, fallback string) string {
+	s := strings.TrimSpace(value)
+	if s == "" {
+		return fallback
+	}
+	if !strings.Contains(s, "://") {
+		s = "https://" + s
+	}
+	if !strings.HasSuffix(s, "/") {
+		s += "/"
+	}
+	return s
 }
 
 func clampInt(v, min, max int) int {

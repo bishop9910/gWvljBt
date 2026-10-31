@@ -65,8 +65,22 @@ async function clearWallpaper(): Promise<void> {
   }
 }
 
-async function ping(source: string): Promise<void> {
-  pinging.value = source;
+const touchgalPinging = ref(false);
+
+/** TouchGal 的 Cookie 会过期，所以留一个显式的探测按钮。 */
+async function pingTouchgal(): Promise<void> {
+  touchgalPinging.value = true;
+  try {
+    const result = await api.touchgal.ping();
+    message.success(result || "连接正常");
+  } catch (err) {
+    message.error(errorText(err));
+  } finally {
+    touchgalPinging.value = false;
+  }
+}
+
+async function ping(source: string): Promise<void> {  pinging.value = source;
   try {
     const result = await api.meta.ping(source);
     message.success(result || `${source} 连接正常`);
@@ -228,33 +242,42 @@ onMounted(async () => {
 
       <div class="field">
         <span class="field__label">密度</span>
-        <div class="seg">
-          <button
-            v-for="option in densityOptions"
-            :key="option.value"
-            type="button"
-            class="seg__item"
-            :class="{ 'is-active': cfg.density === option.value }"
-            @click="patchConfig('density', option.value)"
-          >
-            {{ option.label }}
-          </button>
+        <div class="field__body field__body--inline">
+          <div class="seg">
+            <button
+              v-for="option in densityOptions"
+              :key="option.value"
+              type="button"
+              class="seg__item"
+              :class="{ 'is-active': cfg.density === option.value }"
+              @click="patchConfig('density', option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+          <span class="hint">决定每行放几张卡片，以及卡片之间的距离</span>
         </div>
       </div>
 
       <div class="field">
         <span class="field__label">海报比例</span>
-        <div class="seg">
-          <button
-            v-for="option in posterOptions"
-            :key="option.value"
-            type="button"
-            class="seg__item"
-            :class="{ 'is-active': cfg.posterAspect === option.value }"
-            @click="patchConfig('posterAspect', option.value)"
-          >
-            {{ option.label }}
-          </button>
+        <div class="field__body field__body--inline">
+          <div class="seg">
+            <button
+              v-for="option in posterOptions"
+              :key="option.value"
+              type="button"
+              class="seg__item"
+              :class="{ 'is-active': cfg.posterAspect === option.value }"
+              @click="patchConfig('posterAspect', option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+          <span class="ratio-preview" aria-hidden="true">
+            <i :style="{ aspectRatio: (cfg.posterAspect || '2/3') }" />
+          </span>
+          <span class="hint">改的是封面的高宽比，卡片高度会跟着变</span>
         </div>
       </div>
 
@@ -336,6 +359,47 @@ onMounted(async () => {
       <p class="note">
         本工具不抓取、也不提供补丁文件，只记录「哪个补丁动了哪些文件」，方便以后一键清理。
       </p>
+
+      <div class="field field--stack">
+        <span class="field__label">TouchGal</span>
+        <div class="field__body">
+          <div class="field__body--inline">
+            <n-input
+              :value="cfg.touchgalUrl"
+              placeholder="https://www.touchgal.ink/"
+              style="max-width: 300px"
+              @update:value="(value: string) => patchConfig('touchgalUrl', value)"
+            />
+            <n-button size="small" :loading="touchgalPinging" @click="pingTouchgal">
+              测试连接
+            </n-button>
+            <n-button size="small" text @click="api.games.openUrl(cfg.touchgalUrl || 'https://www.touchgal.ink/')">
+              打开站点
+            </n-button>
+          </div>
+          <n-input
+            :value="cfg.touchgalCookie"
+            type="textarea"
+            :rows="3"
+            placeholder="把浏览器里的整段 Cookie 粘进来（至少要有 cf_clearance）"
+            @update:value="(value: string) => patchConfig('touchgalCookie', value)"
+          />
+          <n-input
+            :value="cfg.touchgalToken"
+            type="password"
+            show-password-on="click"
+            placeholder="登录令牌 kun-galgame-patch-moe-token（可选，不登录留空）"
+            style="max-width: 360px"
+            @update:value="(value: string) => patchConfig('touchgalToken', value)"
+          />
+          <p class="note">
+            整个站点在 Cloudflare 后面，普通请求只会拿到验证页。做法是：在浏览器打开
+            TouchGal 并通过人机验证 → 开发者工具 Application → Cookies 里复制
+            <code>cf_clearance</code>（或整段 Cookie）粘到上面。这个值通常几十分钟到几天
+            就会失效，过期后「测试连接」会直接告诉你。
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- 数据 -->
@@ -708,6 +772,21 @@ onMounted(async () => {
 .hint {
   font-size: var(--gv-fs-label);
   color: var(--gv-text-faint);
+}
+
+/* 海报比例的小样：宽度固定，高度随选中的比例变，一眼能看出差别 */
+.ratio-preview {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+}
+
+.ratio-preview i {
+  display: block;
+  height: 100%;
+  width: auto;
+  border: 1px solid var(--gv-border-strong);
+  background: var(--gv-surface-2);
 }
 
 .path {

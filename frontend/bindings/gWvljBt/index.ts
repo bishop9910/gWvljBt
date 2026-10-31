@@ -6,12 +6,14 @@ import * as GameService from "./gameservice.js";
 import * as MetaService from "./metaservice.js";
 import * as PatchService from "./patchservice.js";
 import * as ScanService from "./scanservice.js";
+import * as TouchGalService from "./touchgalservice.js";
 export {
     ConfigService,
     GameService,
     MetaService,
     PatchService,
-    ScanService
+    ScanService,
+    TouchGalService
 };
 
 export type {
@@ -27,5 +29,8 @@ export type {
     SearchHit,
     Stats,
     TimelinePoint,
+    TouchGalHit,
+    TouchGalLink,
+    TouchGalResource,
     UninstallResult
 } from "./models.js";

@@ -215,6 +215,46 @@ export interface TimelinePoint {
 }
 
 /**
+ * TouchGalHit 是搜索结果里的一条作品。
+ */
+export interface TouchGalHit {
+    "id": number;
+    "uniqueId": string;
+    "name": string;
+    "banner": string;
+    "rating": number;
+    "language": string;
+    "platform": string;
+    "type": string;
+    "pageUrl": string;
+}
+
+/**
+ * TouchGalLink 是一条网盘链接。
+ */
+export interface TouchGalLink {
+    "storage": string;
+    "size": string;
+    "url": string;
+    "code": string;
+    "password": string;
+}
+
+/**
+ * TouchGalResource 是某部作品下的一个资源（补丁/本体/MOD）。
+ */
+export interface TouchGalResource {
+    "id": number;
+    "name": string;
+    "section": string;
+    "type": string;
+    "language": string;
+    "note": string;
+    "platform": string;
+    "links": TouchGalLink[] | null;
+}
+
+/**
  * UninstallResult 描述卸载补丁动了哪些文件。
  */
 export interface UninstallResult {

@@ -22,15 +22,15 @@ import (
 // ScanCandidate 是扫描到的一个疑似游戏目录。
 type ScanCandidate struct {
 	Path       string   `json:"path"`
-	Name       string   `json:"name"`      // 从目录名清洗出来的标题
-	Exe        string   `json:"exe"`       // 猜出来的主程序，可能为空
-	Engine     string   `json:"engine"`    // 猜出来的引擎，可能为空
-	Evidence   []string `json:"evidence"`  // 判定依据，给用户看的
-	Files      int      `json:"files"`     //
-	Size       int64    `json:"size"`      // 字节
-	Partial    bool     `json:"partial"`   // 统计是否因为文件太多被截断
+	Name       string   `json:"name"`       // 从目录名清洗出来的标题
+	Exe        string   `json:"exe"`        // 猜出来的主程序，可能为空
+	Engine     string   `json:"engine"`     // 猜出来的引擎，可能为空
+	Evidence   []string `json:"evidence"`   // 判定依据，给用户看的
+	Files      int      `json:"files"`      //
+	Size       int64    `json:"size"`       // 字节
+	Partial    bool     `json:"partial"`    // 统计是否因为文件太多被截断
 	Confidence int      `json:"confidence"` // 0-99
-	MatchedID  uint     `json:"matchedId"` // 已经在库里的话，这里是游戏 ID
+	MatchedID  uint     `json:"matchedId"`  // 已经在库里的话，这里是游戏 ID
 
 	// Meta 是从 VNDB / Bangumi 抓回来的基础信息，可能为空。
 	// 前端可以在导入前就地改标题，剩下的字段原样带回后端。
@@ -70,6 +70,9 @@ const (
 	maxScanCandidates = 500   // 一次最多返回这么多结果
 	maxSizeFiles      = 12000 // 单个游戏统计体积时最多数这么多文件
 	acceptScore       = 56    // 判定分数下限
+	markSearchDepth   = 2     // 引擎指纹 / 素材目录最多看到第二层子目录
+	nestedExeDepth    = 2     // 兜底方案：主程序允许藏在两层子目录里
+	nestedExePenalty  = 10    // 主程序不在根目录时扣分
 )
 
 // extMark 是"后缀 → 引擎"的指纹。
@@ -115,11 +118,26 @@ var fileMarks = []struct {
 	{"nscript.dat", "NScripter", 40},
 }
 
-// 这些目录名是"游戏里有、普通软件里少见"的结构证据。
+// mediaDirNames 是"游戏里有、普通软件里少见"的结构证据。
 var mediaDirNames = map[string]bool{
 	"voice": true, "bgm": true, "se": true, "movie": true, "system": true,
 	"scenario": true, "script": true, "image": true, "graph": true, "sound": true,
 	"savedata": true, "save": true, "data": true, "xp3": true,
+}
+
+// contentDirNames 是"游戏内部的资源/脚本目录"，它们永远不能算作一个游戏本体。
+//
+// 这些名字是踩出来的坑：Key 系游戏的安装目录里一定有 file/ 和 g00/，
+// 里面塞的全是 .g00/.ogg，如果只看后缀而不看有没有主程序，就会扫出
+// "Summer Pockets file" 这种假条目，而真正的游戏根目录反而落选。
+var contentDirNames = map[string]bool{
+	"file": true, "g00": true, "g01": true, "g02": true, "g03": true,
+	"data": true, "voice": true, "bgm": true, "se": true, "movie": true,
+	"image": true, "graph": true, "sound": true, "system": true,
+	"scenario": true, "script": true, "save": true, "savedata": true,
+	"xp3": true, "pack": true, "bg": true, "music": true,
+	"omake": true, "extra": true, "patch": true, "update": true,
+	"voice2": true, "sound2": true, "movie2": true,
 }
 
 // 扫到大目录时直接跳过的东西。
@@ -187,7 +205,7 @@ func ScanGames(root string, maxDepth int, known map[string]uint) (ScanResult, er
 		}
 		result.Dirs++
 
-		if candidate, ok := evaluateDir(current.dir, entries, known); ok {
+		if candidate, ok := evaluateDir(current.dir, known); ok {
 			// 命中就不再往下钻：游戏目录内部不会再有游戏。
 			result.Candidates = append(result.Candidates, candidate)
 			continue
@@ -222,109 +240,154 @@ func (e scanErr) Error() string { return string(e) }
 
 func errNotDir(path string) error { return scanErr("不是目录: " + path) }
 
-// evaluateDir 给一个目录打分，过线就认为它是游戏目录。
-func evaluateDir(dir string, entries []os.DirEntry, known map[string]uint) (ScanCandidate, bool) {
-	candidate := ScanCandidate{Path: dir, Name: CleanTitle(filepath.Base(dir))}
-	score := 0
-	engineWeights := map[string]int{}
-	engineCounts := map[string]int{}
+// shallowInfo 是"浅扫一遍"得到的信息：只看两层子目录，便宜。
+type shallowInfo struct {
+	exe         string // 根目录里的主程序（最大且不是安装器）
+	exeSize     int64
+	nestedExe   string // 藏在子目录里的主程序，兜底用
+	nestedSize  int64
+	engine      string // 命中的引擎
+	engineMax   int    // 该引擎的最高权重（不是累加，累加会被几十个 .g00 撑爆）
+	engineCount int    // 命中多少个特征文件
+	engineNear  bool   // 根目录这一层就命中了
+	mediaDirs   int
+	files       int
+	hasIni      bool
+}
 
-	var bestExe string
-	var bestExeSize int64
-	hasIni := false
-	mediaDirs := 0
-	files := 0
-
-	for _, entry := range entries {
-		name := entry.Name()
-		lower := strings.ToLower(name)
+// scanShallow 用一次深度受限的遍历，把"判断是不是游戏"需要的证据收齐。
+func scanShallow(dir string) shallowInfo {
+	var info shallowInfo
+	_ = filepath.WalkDir(dir, func(path string, entry fs.DirEntry, err error) error {
+		if err != nil || path == dir {
+			return nil
+		}
+		rel, relErr := filepath.Rel(dir, path)
+		if relErr != nil {
+			return nil
+		}
+		depth := strings.Count(rel, string(os.PathSeparator)) + 1
 
 		if entry.IsDir() {
-			if mediaDirNames[lower] {
-				mediaDirs++
+			if mediaDirNames[strings.ToLower(entry.Name())] {
+				info.mediaDirs++
 			}
-			continue
+			if depth >= markSearchDepth {
+				return fs.SkipDir
+			}
+			return nil
 		}
-		files++
+
+		name := entry.Name()
+		lower := strings.ToLower(name)
+		info.files++
 
 		ext := strings.ToLower(filepath.Ext(name))
-		if ext == ".exe" {
-			if isInstallerExe(lower) {
-				continue
-			}
+		if ext == ".exe" && !isInstallerExe(lower) {
 			size := int64(0)
-			if info, err := entry.Info(); err == nil {
-				size = info.Size()
+			if fi, infoErr := entry.Info(); infoErr == nil {
+				size = fi.Size()
 			}
-			// 主程序一般是目录里最大的那个 exe。
-			if size > bestExeSize || bestExe == "" {
-				bestExe = filepath.Join(dir, name)
-				bestExeSize = size
+			if depth == 1 {
+				if size > info.exeSize || info.exe == "" {
+					info.exe, info.exeSize = path, size
+				}
+			} else if depth <= nestedExeDepth && (size > info.nestedSize || info.nestedExe == "") {
+				info.nestedExe, info.nestedSize = path, size
 			}
-			continue
+			return nil
 		}
-		if ext == ".ini" {
-			hasIni = true
+		if depth == 1 && ext == ".ini" {
+			info.hasIni = true
 		}
 
-		for _, mark := range extMarks {
-			if mark.Ext != ext || mark.Engine == "" {
-				continue
-			}
-			engineWeights[mark.Engine] += mark.Weight
-			engineCounts[mark.Engine]++
-			break
+		weight, engine := markOf(lower)
+		if engine == "" || weight == 0 {
+			return nil
 		}
-		for _, mark := range fileMarks {
-			if mark.Name != lower || mark.Engine == "" {
-				continue
-			}
-			engineWeights[mark.Engine] += mark.Weight
-			engineCounts[mark.Engine]++
-			break
+		info.engineCount++
+		if weight > info.engineMax {
+			info.engineMax = weight
+			info.engine = engine
 		}
+		if depth == 1 {
+			info.engineNear = true
+		}
+		return nil
+	})
+	return info
+}
+
+// markOf 把文件名映射成"引擎 + 权重"，命中不了就返回空。
+func markOf(lowerName string) (int, string) {
+	ext := strings.ToLower(filepath.Ext(lowerName))
+	for _, mark := range extMarks {
+		if mark.Ext == ext && mark.Engine != "" {
+			return mark.Weight, mark.Engine
+		}
+	}
+	for _, mark := range fileMarks {
+		if mark.Name == lowerName && mark.Engine != "" {
+			return mark.Weight, mark.Engine
+		}
+	}
+	return 0, ""
+}
+
+// evaluateDir 判断一个目录是不是游戏安装目录。
+//
+// 硬性条件：**根目录里必须有主程序**（或主程序藏在子目录、但自己这层已经有引擎指纹）。
+// 光有 .g00/.xp3 这类资源文件不算 —— Key 系游戏的 file/ 和 g00/ 就是反例。
+func evaluateDir(dir string, known map[string]uint) (ScanCandidate, bool) {
+	if contentDirNames[strings.ToLower(filepath.Base(dir))] {
+		return ScanCandidate{}, false
 	}
 
-	bestEngine := ""
-	bestWeight := 0
-	for engine, weight := range engineWeights {
-		// 权重相同时按名字排一下，保证结果稳定。
-		if weight > bestWeight || (weight == bestWeight && engine < bestEngine) {
-			bestEngine = engine
-			bestWeight = weight
+	info := scanShallow(dir)
+	exe := info.exe
+	penalty := 0
+	if exe == "" {
+		if info.nestedExe == "" || !info.engineNear {
+			return ScanCandidate{}, false
 		}
+		exe = info.nestedExe
+		penalty = nestedExePenalty
 	}
 
-	if bestExe != "" {
-		score += 34
-		candidate.Exe = bestExe
-		candidate.Evidence = append(candidate.Evidence, "主程序 "+filepath.Base(bestExe))
+	candidate := ScanCandidate{
+		Path:     dir,
+		Name:     CleanTitle(filepath.Base(dir)),
+		Exe:      exe,
+		Evidence: []string{"主程序 " + filepath.Base(exe)},
 	}
-	if bestEngine != "" {
-		score += bestWeight
-		candidate.Engine = bestEngine
-		candidate.Evidence = append(candidate.Evidence, bestEngine+" 文件指纹")
-		if count := engineCounts[bestEngine]; count > 1 {
-			candidate.Evidence = append(candidate.Evidence, "命中 "+strconv.Itoa(count)+" 个特征文件")
+	score := 34
+
+	if info.engine != "" {
+		score += info.engineMax
+		candidate.Engine = info.engine
+		candidate.Evidence = append(candidate.Evidence, info.engine+" 文件指纹")
+		if info.engineCount > 1 {
+			candidate.Evidence = append(candidate.Evidence, "命中 "+strconv.Itoa(info.engineCount)+" 个特征文件")
 		}
 	}
-	if mediaDirs > 0 {
-		score += minInt(mediaDirs, 3) * 5
-		candidate.Evidence = append(candidate.Evidence, "素材目录 "+strconv.Itoa(mediaDirs)+" 个")
+	if info.mediaDirs > 0 {
+		score += minInt(info.mediaDirs, 3) * 5
+		candidate.Evidence = append(candidate.Evidence, "素材目录 "+strconv.Itoa(info.mediaDirs)+" 个")
 	}
-	if files >= 40 {
+	if info.files >= 40 {
 		score += 8
 	}
-	if hasIni && bestExe != "" {
+	if info.hasIni {
 		score += 4
 	}
+	score -= penalty
 
-	// 只有"有引擎指纹"或"有主程序 + 多个素材目录"才接受，避免把普通软件当游戏。
-	if bestEngine == "" && mediaDirs < 2 {
-		return candidate, false
+	// 引擎指纹只是加分项：光有资源文件、没有主程序，不认为是一个游戏。
+	if info.engine == "" && info.mediaDirs < 2 {
+		return ScanCandidate{}, false
 	}
 	if score < acceptScore {
-		return candidate, false
+		return ScanCandidate{}, false
 	}
 
 	candidate.Confidence = minInt(97, score)

@@ -54,8 +54,9 @@
 
   --gv-radius: 6px;
   --gv-radius-sm: 3px;
-  --gv-gap: 16px;
-  --gv-card-min: 202px;
+  --gv-card-min: 206px;
+  --gv-grid-row-gap: 28px;
+  --gv-grid-col-gap: 20px;
   --gv-poster-ratio: 2 / 3;
 
   --gv-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -69,10 +70,6 @@ html[data-scheme="light"] {
   --gv-grain: 0.05;
   --gv-shadow-1: 0 1px 0 rgba(35, 33, 29, 0.06);
   --gv-shadow-2: 0 18px 40px -28px rgba(35, 33, 29, 0.28);
-}
-
-html[data-density="compact"] {
-  --gv-gap: 10px;
 }
 
 * {

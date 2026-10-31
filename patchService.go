@@ -51,11 +51,11 @@ type PatchRow struct {
 // DetectResult 是"检测目录变化"的结果。
 type DetectResult struct {
 	// HadBaseline=false 表示这次只是建立了基线，没有可比对的东西。
-	HadBaseline bool               `json:"hadBaseline"`
-	Changes     []data.FileChange  `json:"changes"`
-	Total       int                `json:"total"`
-	Truncated   bool               `json:"truncated"`
-	ScannedAt   int64              `json:"scannedAt"`
+	HadBaseline bool              `json:"hadBaseline"`
+	Changes     []data.FileChange `json:"changes"`
+	Total       int               `json:"total"`
+	Truncated   bool              `json:"truncated"`
+	ScannedAt   int64             `json:"scannedAt"`
 }
 
 // UninstallResult 描述卸载补丁动了哪些文件。
