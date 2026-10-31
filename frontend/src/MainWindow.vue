@@ -26,6 +26,15 @@ import { openGameEditor, openScan, openTouchgal, uiStore } from "./state/ui";
 const route = useRoute();
 const router = useRouter();
 
+/** 详情页这类子页面才给返回键：它属于「游戏库」，不是导航平级项。 */
+const isSubPage = computed(() => route.name === "game");
+
+/** 有历史就退一格，没有就回游戏库。 */
+function goBack(): void {
+  if (router.options.history.state.back) router.back();
+  else void router.push("/");
+}
+
 interface NavItem {
   key: string;
   label: string;
@@ -160,6 +169,14 @@ onUnmounted(() => {
     <section class="stage">
       <header class="topbar">
         <div class="topbar__heading">
+          <n-tooltip v-if="isSubPage" trigger="hover" placement="bottom-start" :delay="200">
+            <template #trigger>
+              <button class="backbtn" type="button" aria-label="返回" @click="goBack">
+                <n-icon :size="15" :component="ChevronBackOutline" />
+              </button>
+            </template>
+            返回游戏库 · Esc
+          </n-tooltip>
           <h1>{{ title }}</h1>
           <span v-if="subtitle" class="topbar__count">{{ subtitle }}</span>
         </div>
@@ -406,6 +423,28 @@ onUnmounted(() => {
   align-items: baseline;
   gap: 9px;
   min-width: 0;
+}
+
+/* 返回键：方角发丝框，和 chip 同一套语言 */
+.backbtn {
+  align-self: center;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-right: 1px;
+  padding: 0;
+  border: 1px solid var(--gv-border);
+  border-radius: var(--gv-radius-sm);
+  background: transparent;
+  color: var(--gv-text-dim);
+  cursor: pointer;
+  transition: color 0.16s var(--gv-ease), border-color 0.16s var(--gv-ease);
+}
+
+.backbtn:hover {
+  color: var(--gv-accent);
+  border-color: var(--gv-accent-line);
 }
 
 .topbar__heading h1 {

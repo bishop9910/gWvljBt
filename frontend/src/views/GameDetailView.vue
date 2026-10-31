@@ -2,7 +2,7 @@
 /**
  * 作品详情：左侧主区放补丁与简介，右侧放游玩记录和链接。
  */
-import { computed, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
   NButton,
@@ -17,7 +17,6 @@ import {
   useMessage,
 } from "naive-ui";
 import {
-  ArrowBackOutline,
   CloudDownloadOutline,
   CreateOutline,
   ExtensionPuzzleOutline,
@@ -44,11 +43,38 @@ import {
   type Patch,
 } from "../lib/types";
 import { configStore } from "../state/config";
-import { openGameEditor, openPatchEditor, openTouchgal } from "../state/ui";
+import { openGameEditor, openPatchEditor, openTouchgal, uiStore } from "../state/ui";
 
 const route = useRoute();
 const router = useRouter();
 const message = useMessage();
+
+/**
+ * 返回上一处：有历史就退一格（从补丁页跳进来的会退回补丁页），
+ * 没有历史（比如直接从库里点进来后被刷新）就回游戏库。
+ */
+function goBack(): void {
+  if (router.options.history.state.back) router.back();
+  else void router.push("/");
+}
+
+/** Esc 退出详情；任何弹窗/抽屉开着时让它们自己处理。 */
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key !== "Escape") return;
+  if (
+    missingModal.value ||
+    uiStore.gameEditorOpen ||
+    uiStore.patchEditorOpen ||
+    uiStore.scanOpen ||
+    uiStore.touchgalOpen
+  ) {
+    return;
+  }
+  goBack();
+}
+
+onMounted(() => window.addEventListener("keydown", onKeydown));
+onBeforeUnmount(() => window.removeEventListener("keydown", onKeydown));
 
 const game = ref<Game | null>(null);
 const patches = ref<Patch[]>([]);
@@ -249,13 +275,6 @@ watch(
           <div class="hero__inner">
             <PosterImage class="hero__poster" :src="game.poster" :title="game.title" />
             <div class="hero__info">
-              <div class="hero__crumb">
-                <button type="button" class="crumb" @click="router.push('/')">
-                  <n-icon :size="13" :component="ArrowBackOutline" />
-                  游戏库
-                </button>
-              </div>
-
               <h1 class="hero__title">{{ game.title }}</h1>
               <p v-if="game.originalTitle || aliasList.length" class="hero__sub">
                 {{ game.originalTitle }}
@@ -637,26 +656,6 @@ watch(
   flex-direction: column;
   gap: 9px;
   padding-bottom: 4px;
-}
-
-.hero__crumb {
-  margin-bottom: 2px;
-}
-
-.crumb {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-  color: var(--gv-text-dim);
-  font-size: var(--gv-fs-label);
-  cursor: pointer;
-  padding: 0;
-}
-
-.crumb:hover {
-  color: var(--gv-accent);
 }
 
 .hero__title {
