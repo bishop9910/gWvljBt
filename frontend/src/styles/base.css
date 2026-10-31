@@ -1,0 +1,418 @@
+/* ==========================================================================
+   gWvljBt 设计系统
+   底子是一本私人藏书目录：墨/纸的底色、发丝分隔线、衬线标题、等宽数字。
+   颜色全部由 src/lib/theme.ts 按配置写到 <html> 的内联变量上，
+   这里只提供结构与默认值。
+   ========================================================================== */
+
+:root {
+  /* ---- 字体族：三条线，分工写死 ----
+     1. --gv-font      界面全部文字（控件、正文、标签、导航、按钮、中文）
+     2. --gv-font-display  只给"名字"用：页面大标题、区块标题、作品标题（≥15px）
+     3. --gv-mono      只给纯数字/路径/时间用（ASCII）；末尾仍垫中文字体，
+                       万一混进中文也不会掉到系统默认字体上 */
+  --gv-font: "Segoe UI", system-ui, -apple-system, "Microsoft YaHei UI", "PingFang SC",
+    "Noto Sans SC", sans-serif;
+  --gv-font-display: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun", Georgia,
+    ui-serif, serif;
+  --gv-mono: "Cascadia Mono", "JetBrains Mono", Consolas, ui-monospace, "Microsoft YaHei UI",
+    "PingFang SC", "Noto Sans SC", monospace;
+
+  /* ---- 字号刻度：只允许用这几档 ----
+     caption 11 / label 12 / body 13 / title 15 / subhead 17 / head 25 / hero 31 */
+  --gv-fs-caption: 11px;
+  --gv-fs-label: 12px;
+  --gv-fs-body: 13px;
+  --gv-fs-title: 15px;
+  --gv-fs-subhead: 17px;
+  --gv-fs-head: 25px;
+  --gv-fs-hero: 31px;
+
+  --gv-lh-tight: 1.35;
+  --gv-lh-body: 1.65;
+  --gv-track-display: 0.01em;
+  --gv-track-label: 0.02em;
+
+  /* 默认主题（墨）—— theme.ts 会在启动瞬间覆盖成用户选的那套 */
+  --gv-bg: #14161a;
+  --gv-bg-deep: #0f1114;
+  --gv-surface: #1a1d22;
+  --gv-surface-2: #20242a;
+  --gv-surface-3: #262b32;
+  --gv-text: #e9e5db;
+  --gv-text-dim: #a5a199;
+  --gv-text-faint: #73716b;
+  --gv-border: rgba(233, 229, 219, 0.1);
+  --gv-border-strong: rgba(233, 229, 219, 0.2);
+  --gv-accent: #c05a4e;
+  --gv-accent-soft: rgba(192, 90, 78, 0.14);
+  --gv-accent-line: rgba(192, 90, 78, 0.45);
+  --gv-accent-ink: #e9e5db;
+  --gv-danger: #d9736b;
+  --gv-success: #7ba17a;
+  --gv-warn: #c9a227;
+
+  --gv-radius: 6px;
+  --gv-radius-sm: 3px;
+  --gv-gap: 16px;
+  --gv-card-min: 202px;
+  --gv-poster-ratio: 2 / 3;
+
+  --gv-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --gv-shadow-1: 0 1px 0 rgba(0, 0, 0, 0.18);
+  --gv-shadow-2: 0 18px 40px -26px rgba(0, 0, 0, 0.65);
+  --gv-shadow-accent: 0 10px 30px -18px rgba(192, 90, 78, 0.9);
+  --gv-grain: 0.035;
+}
+
+html[data-scheme="light"] {
+  --gv-grain: 0.05;
+  --gv-shadow-1: 0 1px 0 rgba(35, 33, 29, 0.06);
+  --gv-shadow-2: 0 18px 40px -28px rgba(35, 33, 29, 0.28);
+}
+
+html[data-density="compact"] {
+  --gv-gap: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* 纸面必须由 html / #app 自己铺。
+   n-global-style 会往 <body> 写内联 style.backgroundColor（我们的 override 是
+   transparent），内联样式压过下面的 body 规则 —— 一旦纸面只挂在 body 上，
+   浅色预设就会露出窗口自己的深色底，整页变成"深底 + 浅面板"。 */
+html,
+#app {
+  background: var(--gv-bg);
+  color: var(--gv-text);
+}
+
+body {
+  font-family: var(--gv-font);
+  font-size: var(--gv-fs-body);
+  line-height: var(--gv-lh-body);
+  color: var(--gv-text);
+  background: var(--gv-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* 表单控件默认会用系统字体（中文 Win 上是宋体/Times），必须显式继承 */
+button,
+input,
+select,
+textarea {
+  font-family: var(--gv-font);
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--gv-mono);
+  font-size: 0.94em;
+}
+
+/* 中文不使用假斜体：所有 <em>/<i> 当普通强调片段用，靠颜色和字号区分 */
+em,
+i {
+  font-style: normal;
+}
+
+strong,
+b {
+  font-weight: 600;
+}
+
+/* 纸张颗粒：一层几乎看不见的噪点，让大块纯色不死板 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--gv-grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+input,
+textarea,
+.gv-selectable {
+  user-select: text;
+}
+
+a {
+  color: var(--gv-accent);
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--gv-font-display);
+  font-weight: 600;
+  letter-spacing: var(--gv-track-display);
+  line-height: var(--gv-lh-tight);
+}
+
+/* 滚动条：细，不抢眼 */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gv-border-strong);
+  border: 4px solid transparent;
+  background-clip: content-box;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gv-text-faint);
+  background-clip: content-box;
+}
+
+/* ==========================================================================
+   壁纸层
+   ========================================================================== */
+
+.gv-wall {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--gv-bg);
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  transform: scale(1.04);
+}
+
+.gv-wall__veil {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: var(--gv-bg);
+}
+
+/* ==========================================================================
+   通用块
+   ========================================================================== */
+
+.gv-card {
+  position: relative;
+  background: var(--gv-surface);
+  border: 1px solid var(--gv-border);
+  border-radius: var(--gv-radius);
+}
+
+/* 分区小标题：衬线，不用大写字母和眉标 */
+.gv-section-title {
+  font-family: var(--gv-font-display);
+  font-size: var(--gv-fs-title);
+  font-weight: 600;
+  letter-spacing: var(--gv-track-display);
+  color: var(--gv-text);
+  margin: 0 0 10px;
+}
+
+/* 数字：只放 ASCII。字体栈末尾垫了中文，真混进中文也是界面字体 */
+.gv-mono {
+  font-family: var(--gv-mono);
+  font-size: var(--gv-fs-caption);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.gv-num {
+  font-family: var(--gv-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+/* 说明性小字：界面字体 + 等宽数字，中文也统一 */
+.gv-meta {
+  font-family: var(--gv-font);
+  font-size: var(--gv-fs-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--gv-text-faint);
+}
+
+.gv-muted {
+  color: var(--gv-text-dim);
+}
+
+.gv-faint {
+  color: var(--gv-text-faint);
+}
+
+.gv-label {
+  font-family: var(--gv-font);
+  font-size: var(--gv-fs-label);
+  letter-spacing: var(--gv-track-label);
+  color: var(--gv-text-dim);
+}
+
+
+.gv-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gv-spacer {
+  flex: 1 1 auto;
+}
+
+.gv-rule {
+  height: 0;
+  border: 0;
+  border-top: 1px solid var(--gv-border);
+  margin: 0;
+}
+
+/* 标签：小方角，像盖章而不是药丸。文字是中文，用界面字体 */
+.gv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 7px;
+  border: 1px solid var(--gv-border);
+  border-radius: var(--gv-radius-sm);
+  background: transparent;
+  color: var(--gv-text-dim);
+  font-family: var(--gv-font);
+  font-size: var(--gv-fs-caption);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.gv-chip--accent {
+  color: var(--gv-accent);
+  border-color: var(--gv-accent-line);
+  background: var(--gv-accent-soft);
+}
+
+.gv-scroll {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gv-accent-line);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   路由过渡：只做淡入，不做位移弹跳
+   ========================================================================== */
+
+.gv-view-enter-active {
+  transition: opacity 0.2s var(--gv-ease);
+}
+
+.gv-view-leave-active {
+  transition: opacity 0.12s linear;
+}
+
+.gv-view-enter-from,
+.gv-view-leave-to {
+  opacity: 0;
+}
+
+/* 入场：轻微淡入，不逐项延迟 */
+@keyframes gv-rise {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.gv-rise {
+  animation: gv-rise 0.24s var(--gv-ease) both;
+}
+
+/* ==========================================================================
+   naive-ui 控件统一
+   naive 默认给输入/选择控件一层浅灰填充 + 大圆角，在纸墨底子上会显得像
+   另一个组件库。这里只改「看起来」的变量：底色一律透明，用发丝线表达边界。
+   主色按钮（primary）保持原样，它是全站唯一允许实心的东西。
+   ========================================================================== */
+
+/* 选择器的底色 / 边框 / 焦点环全部在 src/lib/theme.ts 的主题变量里定义，
+   这里只补 naive 用 CSS 类而非变量控制的形状。 */
+
+/* 下拉菜单：纸面、细线、无阴影 */
+.n-base-select-menu {
+  --n-border-radius: var(--gv-radius-sm);
+  --n-option-font-size: var(--gv-fs-label);
+  --n-font-size: var(--gv-fs-label);
+  border-radius: var(--gv-radius-sm);
+}
+
+.n-base-select-option {
+  font-family: var(--gv-font);
+  font-size: var(--gv-fs-label);
+}
+
+/* 开关：小方角，别做药丸 */
+.n-switch {
+  --n-rail-border-radius: var(--gv-radius-sm);
+  --n-button-border-radius: 2px;
+}
+
+/* 滑块从主色填充改成一条细轨 */
+.n-slider {
+  --n-rail-height: 2px;
+  --n-rail-border-radius: 0;
+  --n-handle-size: 12px;
+}
+
+/* ==========================================================================
+   关闭动效
+   ========================================================================== */
+
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

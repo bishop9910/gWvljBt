@@ -1,0 +1,25 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:dev": "vue-tsc && vite build --minify false --mode development",
+    "build": "vue-tsc && vite build --mode production",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@wailsio/runtime": "3.0.0",
+    "naive-ui": "^2.45.3",
+    "vue": "^3.2.45",
+    "vue-router": "^5.4.0"
+  },
+  "devDependencies": {
+    "@vicons/ionicons5": "^0.13.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "typescript": "~5.9.3",
+    "vite": "^8.2.4",
+    "vue-tsc": "^3.3.12"
+  }
+}
